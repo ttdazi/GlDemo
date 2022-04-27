@@ -18,29 +18,6 @@ public class RotateGlProcess {
             "    gl_Position = vec4(a_position.x,a_position.y, 0, 1);\n" +
             "    v_texcoord = a_texcoord;\n" +
             "}";
-//    (textureTransform * vec4(a_texcoord.x, a_texcoord.y, 0, 1)).xy;\n" +
-public static String fragmentShader5 = "precision mediump float;\n" +
-        "// External texture containing video decoder output.\n" +
-        "uniform sampler2D uImageTexture;\n" +
-        "uniform vec4 imageRect;\n" +
-        "varying vec2 v_texcoord;\n" +
-        "uniform mat4 textureTransform;\n" +
-        "void main() {\n" +
-        "       float redirX=(imageRect.b-imageRect.r);\n"+
-        "       float redirY=(imageRect.a-imageRect.g);\n"+
-        "       float pointX=(v_texcoord.x-imageRect.r)/redirX-0.5;\n"+
-        "       float pointY=(v_texcoord.y-imageRect.g)/redirY-0.5;\n"+
-        "       if(pointX > 0.0 && pointX < 0.1 && pointY > 0.0 && pointY < 0.1) {\n"+
-        "           gl_FragColor = vec4(1,1,1,1);\n"+
-        "           return;\n"+
-        "       }\n"+
-        "        vec2 imagexy = (textureTransform*vec4(pointX,pointY, 0, 1)).xy;\n" +
-        "       if(imagexy.x >= 0.0 && imagexy.x <= 1.0 && imagexy.y >= 0.0 && imagexy.y <= 1.0) {\n"+
-        "            gl_FragColor = texture2D(uImageTexture, vec2((imagexy.x), imagexy.y));\n" +
-        "       } else {\n" +
-        "            gl_FragColor = vec4(0,0,0,0);\n" +
-        "       }\n" +
-        "}";
     public static String fragmentShader = "precision mediump float;\n" +
             "// External texture containing video decoder output.\n" +
             "uniform sampler2D uImageTexture;\n" +
@@ -65,30 +42,9 @@ public static String fragmentShader5 = "precision mediump float;\n" +
             "            gl_FragColor = vec4(0,0,0,0);\n" +
             "       }\n" +
             "}";
-    public static String fragmentShade3 = "precision mediump float;\n" +
-            "// External texture containing video decoder output.\n" +
-            "uniform sampler2D uImageTexture;\n" +
-            "vec2 centerPoint;\n" +
-            "float radius;\n"+
-            "varying vec2 v_texcoord;\n" +
-            "float radiusL;\n"+
-            "float radiusT;\n"+
-            "void main() {\n" +
-            "    radiusL = v_texcoord.x-centerPoint.x\n" +
-            "    radiusT = v_texcoord.y-centerPoint.y\n" +
-            "   if(radiusL*radiusL+radiusT*radiusT <= radius*radius)\n" +
-            "   {\n" +
-            "       vec2 imagexy = vec2((v_texcoord.x-centerPoint.x-radius)/(imageRect.b-imageRect.r),(v_texcoord.y-imageRect.g)/(imageRect.a-imageRect.g));\n" +
-            "       vec2 imagexy = vec2((v_texcoord.x-imageRect.r)/(imageRect.b-imageRect.r),(v_texcoord.y-imageRect.g)/(imageRect.a-imageRect.g));\n" +
-            "       gl_FragColor = texture2D(uImageTexture,    );\n" +
-            "   } else {\n" +
-            "       gl_FragColor = vec4(0,0,0,0);\n" +
-            "   }\n" +
-            "}";
 
 
     public static final int NO_TEXTURE = -1;
-    private static int translationX;
     private int glProgram;
     private  GlUtil.Attribute[] attributes;
     private   GlUtil.Uniform[] uniforms;
@@ -100,7 +56,6 @@ public static String fragmentShader5 = "precision mediump float;\n" +
     private static final String TAG = "RotateGlProcess";
 
     protected final Object syncBitmap = new Object();
-    private int widthPixels,heightPixels;
     protected RectF iconRectF;
 
 
@@ -115,7 +70,7 @@ public static String fragmentShader5 = "precision mediump float;\n" +
     }
 
     public void updateIcon(Bitmap _bitmap, RectF _rect) {
-        float left = 0;
+        Log.i(TAG, "updateIcon: " + _bitmap + "..." + _rect);
         synchronized (syncBitmap) {
             if (iconBitmap != null) {
                 iconBitmap.recycle();
@@ -125,18 +80,10 @@ public static String fragmentShader5 = "precision mediump float;\n" +
             if (_rect != null) {
                 isNeedUpdateSize = !_rect.equals(iconRectF);
                 if (isNeedUpdateSize) {
-                    isNeedUpdateSize=false;
-//                    iconRectF.set(_rect);
-                    left = _rect.left-iconRectF.left;
-                    if(left!=_rect.left) {
-                        translationX = (int) (left*widthPixels);
-                    } else {
-                        iconRectF.set(_rect);
-                    }
+                    iconRectF.set(_rect);
                 }
             }
         }
-        Log.i(TAG, "updateIcon: " + _bitmap + "..." + _rect+"..."+translationX+"..."+left);
     }
 
     /**
@@ -148,11 +95,8 @@ public static String fragmentShader5 = "precision mediump float;\n" +
         String vertexShaderCode = vertexShader;
         String fragmentShaderCode = fragmentShader;
         glProgram = GlUtil.compileProgram(vertexShaderCode, fragmentShaderCode);
-        GlUtil.Attribute[] attributes = GlUtil.getAttributes(glProgram);
-        GlUtil.Uniform[] uniforms = GlUtil.getUniforms(glProgram);
-        this.attributes = attributes;
-        this.uniforms = uniforms;
-
+        this.attributes = GlUtil.getAttributes(glProgram);
+        this.uniforms = GlUtil.getUniforms(glProgram);
         mVboHelper.initialize(attributes);
         mVboHelper.bind();
     }
@@ -236,14 +180,10 @@ public static String fragmentShader5 = "precision mediump float;\n" +
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
         } else {
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, reUseTexture);
-            GLUtils.texSubImage2D(GLES20.GL_TEXTURE_2D, 0, 15, 15, image);
+            GLUtils.texSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, image);
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
             texture[0] = reUseTexture;
         }
         return texture[0];
-    }
-    public void setScreen(int widthPixels, int heightPixels) {
-        this.widthPixels=widthPixels;
-        this.heightPixels=heightPixels;
     }
 }

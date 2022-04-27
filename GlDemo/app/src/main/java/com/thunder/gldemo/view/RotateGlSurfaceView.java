@@ -109,7 +109,6 @@ public class RotateGlSurfaceView extends GLSurfaceView {
         float bottom = top + height * 1.0f / screenHeight;
         RectF rectF = new RectF();
         rectF.set(left, top, right, bottom);
-        rotateGlProcess.setScreen(displayMetrics.widthPixels,displayMetrics.heightPixels);
         rotateGlProcess.updateIcon(bitmap, rectF);
     }
 
